@@ -185,7 +185,8 @@ function BankingSimulator({ adapterUrl, rejectCodes }: { adapterUrl: string; rej
       if (!res.ok) return;
       const data: AdapterStats = await res.json();
       setStats(data);
-      setConfig(data.config);
+      // Audit 4 Y13 — adapter devuelve rejectionRate en 0-1; UI lo muestra 0-100.
+      setConfig({ ...data.config, rejectionRate: Math.round(data.config.rejectionRate * 100) });
     } catch { /* offline */ } finally { setStatsLoading(false); }
   }, [adapterUrl]);
 
@@ -198,8 +199,10 @@ function BankingSimulator({ adapterUrl, rejectCodes }: { adapterUrl: string; rej
   const saveConfig = async () => {
     try {
       setActionLoading('config');
+      // Audit 4 Y13 — UI mantiene rejectionRate en 0-100 (slider); adapter 0-1.
+      const payload = { ...config, rejectionRate: config.rejectionRate / 100 };
       const res = await fetch(`${adapterUrl}/admin/config`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       toast.success('Configuracion guardada');
@@ -367,15 +370,17 @@ export default function BrebSimulatorPage() {
   const localForm = useForm<LocalValues>({
     resolver: zodResolver(localSchema),
     defaultValues: {
-      debtorAlias: 'BREB-+573005551234', debtorName: 'Carlos Rodriguez',
-      creditorAlias: 'BREB-1234567890-1', creditorName: 'Ana Lopez',
+      // Audit 4 Y14 — phone +57 móvil per BanRep TR-002 + NIT DIAN mod-11 válido.
+      debtorAlias: 'BREB-+573001234567', debtorName: 'Carlos Rodríguez',
+      creditorAlias: 'BREB-900123456-8', creditorName: 'Ana López',
       amount: 250000.00, currency: 'COP', purpose: 'TRANSFERENCIA', reference: 'BREB-TEST-001',
     },
   });
 
+  // Audit 4 Y14 — CPF mod-11 + CLABE mod-10 weighted válidos.
   const DEST_DEFAULTS: Record<DestRail, { alias: string; name: string }> = {
-    PIX:  { alias: 'PIX-11999887766',          name: 'Joao Silva' },
-    SPEI: { alias: 'SPEI-012180000118359719',   name: 'Juan Perez' },
+    PIX:  { alias: 'PIX-12345678909',          name: 'João Silva' },
+    SPEI: { alias: 'SPEI-012180000118359713',   name: 'Juan Pérez' },
   };
 
   const intlForm = useForm<IntlValues>({
@@ -393,9 +398,22 @@ export default function BrebSimulatorPage() {
     intlForm.setValue('creditorName',  DEST_DEFAULTS[rail].name);
   };
 
+  // Audit 4 Y1 — el core devuelve { access_token, token_type, expires_in };
+  // antes leíamos { token } → Bearer undefined → 401 silencioso.
+  async function getToken(): Promise<string> {
+    const r = await fetch(`${apiUrl}/auth/token`, { method: 'POST' });
+    if (!r.ok) throw new Error(`auth/token HTTP ${r.status}`);
+    const j = (await r.json()) as { access_token?: string };
+    return j.access_token ?? '';
+  }
+
   const pollPayment = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`${apiUrl}/payments/${id}`);
+      // Audit 4 Y3 — antes /payments/:id sin Authorization → 401 silencioso.
+      const token = await getToken().catch(() => '');
+      const res = await fetch(`${apiUrl}/payments/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) return;
       const data: PaymentDetail = await res.json();
       setPayment(data);
@@ -413,7 +431,8 @@ export default function BrebSimulatorPage() {
   const onLocalSubmit = async (data: LocalValues) => {
     try {
       setLocalStatus('loading');
-      const res = await fetch(`${apiUrl}/api/simulate/breb`, {
+      // Audit 4 Y2 — /api/simulate/breb vive en mock-server (:9003), NO core.
+      const res = await fetch(`${adapterUrl}/api/simulate/breb`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
@@ -430,8 +449,7 @@ export default function BrebSimulatorPage() {
     try {
       setIntlStatus('loading');
       setPayment(null);
-      const tokenRes = await fetch(`${apiUrl}/auth/token`);
-      const { token } = tokenRes.ok ? await tokenRes.json() : { token: '' };
+      const token = await getToken().catch(() => '');
       const body = {
         amount: data.amount, currency: 'COP',
         debtor:   { alias: data.debtorAlias,   name: data.debtorName   || undefined },
