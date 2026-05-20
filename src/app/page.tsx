@@ -549,7 +549,7 @@ export default function BrebSimulatorPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-zinc-400 mb-1">Identificador Beneficiario</label>
-                        <input {...localForm.register('creditorAlias')} placeholder="BREB-1234567890-1" className={`${inp} font-mono`} />
+                        <input {...localForm.register('creditorAlias')} placeholder="BREB-900123456-8" className={`${inp} font-mono`} />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-zinc-400 mb-1">Nombre Beneficiario</label>
