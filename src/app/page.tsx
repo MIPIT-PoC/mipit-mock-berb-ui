@@ -359,8 +359,10 @@ export default function BrebSimulatorPage() {
   const [payment, setPayment]   = useState<PaymentDetail | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Audit 4 — /admin/* y /api/simulate/* viven en mock-server (:9003),
+  // NO en health-server (:9103 que sólo expone /health y /metrics).
   const apiUrl     = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-  const adapterUrl = process.env.NEXT_PUBLIC_ADAPTER_URL  || 'http://localhost:9103';
+  const adapterUrl = process.env.NEXT_PUBLIC_ADAPTER_URL  || 'http://localhost:9003';
 
   const localForm = useForm<LocalValues>({
     resolver: zodResolver(localSchema),
