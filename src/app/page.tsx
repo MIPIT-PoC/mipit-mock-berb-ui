@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * @file page.tsx
+ * @description Main interactive page for the BRE_B simulator: composes a BRE_B payment (CC/NIT/TELEFONO/EMAIL keys, COP amount), submits it in Local or Intl mode, polls payment lifecycle stages, and exposes adapter configuration and stats.
+ * @author Miguel
+ * @project MIPIT-PoC — Cross-border Instant Payments Middleware
+ */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

@@ -1,3 +1,9 @@
+/**
+ * @file layout.tsx
+ * @description Root Next.js App Router layout that wires the dark-mode ThemeProvider, global stylesheet, and page metadata for the BRE_B mock simulator.
+ * @author Carlos
+ * @project MIPIT-PoC — Cross-border Instant Payments Middleware
+ */
 import type { Metadata } from 'next';
 import { ThemeProvider } from '../components/theme-provider';
 import './globals.css';
